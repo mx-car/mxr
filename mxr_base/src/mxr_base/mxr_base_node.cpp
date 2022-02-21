@@ -12,12 +12,14 @@ car::com::objects::Time tprev;
 MXRBaseNode:: MXRBaseNode()
     : Node("mxr_base"), count_(0), count_callback_joy_(0)
 {
-    init_parameter();
-    init_com();
     //publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
 
     publisher_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
     publisher_ackermann_state_ = this->create_publisher<mxr_msgs::msg::AckermannState>("state", 10);
+    
+    
+    init_parameter();
+    init_com();
     subscription_ = this->create_subscription<sensor_msgs::msg::Joy>("joy", 10, std::bind(&MXRBaseNode::callback_joy, this, _1));
 }
 
@@ -92,7 +94,8 @@ void MXRBaseNode::callback_serial ( car::com::Message &header,  car::com::Object
     car::com::objects::Duration dt = tnow - tprev;
     tprev = tnow;
     
-//    std::shared_ptr<mxr_msgs::msg::AckermannState> msg_state;
+    mxr_msgs::msg::AckermannState::SharedPtr msg_state;
+    //mxr_msgs::msg::AckermannState msg_state;
 //     state.coubled[0] = false;
 //     msg_state = std::make_shared<mxr_msgs::msg::AckermannState>();
 //     msg_state.coubled[0] = state.coubled[0];
@@ -131,9 +134,16 @@ void MXRBaseNode::callback_serial ( car::com::Message &header,  car::com::Object
         }
         break;
         case car::com::objects::TYPE_ACKERMANN_STATE: {
-            car::com::objects::AckermannState cmd;
-            object.get ( cmd );
-            //std::cout << "AckermannState : " << cmd.getToStringReadable() << std::endl;
+            car::com::objects::AckermannState state;
+            object.get ( state );
+            msg_state = std::make_shared<mxr_msgs::msg::AckermannState>();
+            msg_state->coubled[mxr_msgs::msg::AckermannState::BACK_LEFT] = state.coubled[0];
+            msg_state->coubled[mxr_msgs::msg::AckermannState::BACK_RIGHT] = state.coubled[1];
+            msg_state->velocity[mxr_msgs::msg::AckermannState::BACK_LEFT] = state.v[0];
+            msg_state->velocity[mxr_msgs::msg::AckermannState::BACK_RIGHT] = state.v[1];
+            msg_state->steering[mxr_msgs::msg::AckermannState::FRONT_LEFT] = state.steering;
+            msg_state->steering[mxr_msgs::msg::AckermannState::FRONT_RIGHT] = state.steering;
+            std::cout << "AckermannState : " << state.getToStringReadable() << std::endl;
         }
         break;
         case car::com::objects::TYPE_ACKERMANN_CMD: {
@@ -160,12 +170,7 @@ void MXRBaseNode::callback_serial ( car::com::Message &header,  car::com::Object
     }
     serial_arduino.addObject ( car::com::objects::Object( ackermann_command, car::com::objects::TYPE_ACKERMANN_CMD ) );
     {
-        /*
-        auto message = mxr_msgs::msg::AckermannState();
-        message.data = "Hello, world! " + std::to_string(count_++);
-        RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-        publisher_->publish(message);
-        */
+        if(msg_state)  publisher_ackermann_state_->publish(*msg_state);
     }
 
 }
