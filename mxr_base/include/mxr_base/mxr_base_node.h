@@ -9,7 +9,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "mxr_msgs/msg/ackermann_state.hpp"
+#include "mxr_msgs/msg/ackermann_state_stamped.hpp"
+#include "mxr_msgs/msg/serial_state.hpp"
 
 #include <car/com/pc/interface.h>
 
@@ -42,7 +43,8 @@ private:
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_pose_;
-    rclcpp::Publisher<mxr_msgs::msg::AckermannState>::SharedPtr publisher_ackermann_state_;
+    rclcpp::Publisher<mxr_msgs::msg::AckermannStateStamped>::SharedPtr publisher_ackermann_state_;
+    rclcpp::Publisher<mxr_msgs::msg::SerialState>::SharedPtr publisher_serial_state_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
     size_t count_;
     size_t count_callback_joy_;
@@ -50,9 +52,10 @@ private:
 
     car::com::pc::SerialInterface serial_arduino;
     car::com::objects::AckermannState ackermann_command;
-    car::com::objects::ControlParameter control_parameter;
+    car::com::objects::ControlParameter control_parameter_;
     car::com::objects::AckermannConfig ackermann_config_;
     JoyControlParameter joy_control_parameter_;
+    mxr_msgs::msg::SerialState serial_state_;
     
 };
 

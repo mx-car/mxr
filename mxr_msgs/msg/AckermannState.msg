@@ -1,5 +1,3 @@
-std_msgs/Header header
-
 uint8 FRONT_LEFT  = 0
 uint8 FRONT_RIGHT = 1
 uint8 BACK_LEFT   = 2

@@ -16,6 +16,11 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AckermannState.msg"
+  "msg/AckermannStateStamped.msg"
+  "msg/SerialState.msg"
+  "msg/BLDCParameter.msg"
+  "msg/PIDParameter.msg"
+  "msg/ControlParameter.msg"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
 )
   
