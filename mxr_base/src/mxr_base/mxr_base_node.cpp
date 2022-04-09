@@ -1,6 +1,7 @@
 #include <mxr_base/mxr_base_node.h>
 
 using std::placeholders::_1;
+using std::placeholders::_2;
 using namespace std::chrono_literals;
 using namespace car::com::objects;
 
@@ -16,6 +17,7 @@ MXRBaseNode:: MXRBaseNode()
     publisher_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
     publisher_ackermann_state_ = this->create_publisher<mxr_msgs::msg::AckermannStateStamped>("state", 10);
     publisher_serial_state_ = this->create_publisher<mxr_msgs::msg::SerialState>("serial", 10);
+    srv_control_param_request_ = this->create_service<mxr_msgs::srv::ControlParameter>("control_parameters", std::bind(&MXRBaseNode::callback_srv_control_parameter, this, _1, _2));
 
     init_parameter();
     init_com();
@@ -23,7 +25,7 @@ MXRBaseNode:: MXRBaseNode()
 }
 
 void MXRBaseNode::init_parameter() {
-    control_parameter_ = ControlParameter::get_default(ControlParameter::MXR02);
+    control_parameter_target_ = ControlParameter::get_default(ControlParameter::MXR02);
     
     this->declare_parameter<double>("joy/max_velocity", joy_control_parameter_.max_velocity);
     this->declare_parameter<double>("joy/max_steering", joy_control_parameter_.max_steering);
@@ -34,11 +36,14 @@ void MXRBaseNode::init_parameter() {
     this->declare_parameter<double>("ackermann/wheel_displacement", 0.153);
     this->declare_parameter<double>("ackermann/wheel_axle_displacement", 0.26);
     
-    
-    this->declare_parameter<double>("ackermann/wheel_diameter", 0.065);
-    this->declare_parameter<double>("ackermann/wheel_displacement", 0.153);
-    this->declare_parameter<double>("ackermann/wheel_axle_displacement", 0.26);
-    
+    {
+        rcl_interfaces::msg::ParameterDescriptor descriptor;
+        rcl_interfaces::msg::IntegerRange range;
+        range.set__from_value(0).set__to_value(100).set__step(1);
+        descriptor.integer_range= {range};
+        this->declare_parameter("test", 1, descriptor);
+    }
+    /*
     for(int i = 0; i < 2; i++){
         std::string name = std::string("control/") + std::string(ControlParameter::side_name(i));
         this->declare_parameter<double>(name + "/PID/dt", control_parameter_.pid[i].dt);
@@ -49,21 +54,13 @@ void MXRBaseNode::init_parameter() {
         this->declare_parameter<double>(name + "/PID/kd", control_parameter_.pid[i].Kd);
         this->declare_parameter<int>(name +    "/BLDC/angle_offset_forward", control_parameter_.bldc[i].angle_offset[BLDCParameter::FORWARD]);
         this->declare_parameter<int>(name +    "/BLDC/angle_offset_backward", control_parameter_.bldc[i].angle_offset[BLDCParameter::BACKWARD]);
-        this->declare_parameter<int>(name +    "/LEFT/BLDC/nr_of_coils", control_parameter_.bldc[i].nr_omf_coils);
+        this->declare_parameter<int>(name +    "/LEFT/BLDC/nr_of_coils", control_parameter_.bldc[i].nr_of_coils);
     }
+    */
     
     
-    {
-        rcl_interfaces::msg::ParameterDescriptor descriptor;
-        rcl_interfaces::msg::IntegerRange range;
-        range.set__from_value(0).set__to_value(100).set__step(1);
-        descriptor.integer_range= {range};
-        this->declare_parameter("test", 1, descriptor);
-    }
-    
-    
-    callback_parameter();
-    timer_ = this->create_wall_timer(1000ms, std::bind(&MXRBaseNode::callback_parameter, this));
+    callback_update_parameter();
+    timer_ = this->create_wall_timer(1000ms, std::bind(&MXRBaseNode::callback_update_parameter, this));
 }
 
 void MXRBaseNode::init_com() {
@@ -79,7 +76,23 @@ void MXRBaseNode::init_com() {
     serial_arduino.init ( serial, callback_serial_fnc );
     std::this_thread::sleep_for(std::chrono::seconds(1));
 }
-void MXRBaseNode::callback_parameter()
+
+void MXRBaseNode::callback_srv_control_parameter(const std::shared_ptr<mxr_msgs::srv::ControlParameter::Request>  request,
+          std::shared_ptr<mxr_msgs::srv::ControlParameter::Response> response) {
+    if(request->request.empty()){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Incoming request was empty");
+        return;
+    }
+    response->bldc.resize(2);
+
+    for (int i = 0; i < 2; i++){ 
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "sending back response");
+        response->bldc[0].nr_of_coils = 3;
+    }
+}
+
+
+void MXRBaseNode::callback_update_parameter()
 {
     
     this->get_parameter("joy/max_velocity", joy_control_parameter_.max_velocity);
@@ -184,9 +197,8 @@ void MXRBaseNode::callback_serial ( car::com::Message &header,  car::com::Object
         }
         break;
         case car::com::objects::TYPE_CONTROL_PARAMETER: {
-            car::com::objects::ControlParameter o;
-            object.get ( o );
-            std::cout << "ControlParameter : " << o << std::endl;
+            object.get ( control_parameter_current_ );
+            std::cout << "ControlParameter : " << control_parameter_current_ << std::endl;
         }
         break;
         default:
@@ -194,8 +206,8 @@ void MXRBaseNode::callback_serial ( car::com::Message &header,  car::com::Object
         }
     }
     
-    control_parameter_ = ControlParameter::get_default(ControlParameter::MXR02);
-    serial_arduino.addObject ( Object( control_parameter_, TYPE_CONTROL_PARAMETER ) );
+    control_parameter_target_ = ControlParameter::get_default(ControlParameter::MXR02);
+    serial_arduino.addObject ( Object( control_parameter_target_, TYPE_CONTROL_PARAMETER ) );
         
     serial_arduino.addObject ( car::com::objects::Object( ackermann_command, car::com::objects::TYPE_ACKERMANN_CMD ) );
     {

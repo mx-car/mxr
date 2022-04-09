@@ -1,0 +1,6 @@
+string request
+---
+int64 sum
+
+mxr_msgs/BLDCParameter[] bldc
+mxr_msgs/PIDParameter[] pid

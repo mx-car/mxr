@@ -11,6 +11,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "mxr_msgs/msg/ackermann_state_stamped.hpp"
 #include "mxr_msgs/msg/serial_state.hpp"
+#include "mxr_msgs/srv/control_parameter.hpp"
 
 #include <car/com/pc/interface.h>
 
@@ -35,24 +36,28 @@ private:
     void init_com() ;
     void init_parameter();
     
-    void callback_parameter();
+    void callback_update_parameter();
     void callback_joy(const sensor_msgs::msg::Joy &msg) ;
 
     void callback_serial ( car::com::Message &header,  car::com::Objects & objects );
     void respond();
+
+    void callback_srv_control_parameter(const std::shared_ptr<mxr_msgs::srv::ControlParameter::Request> request, std::shared_ptr<mxr_msgs::srv::ControlParameter::Response>  response);
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_pose_;
     rclcpp::Publisher<mxr_msgs::msg::AckermannStateStamped>::SharedPtr publisher_ackermann_state_;
     rclcpp::Publisher<mxr_msgs::msg::SerialState>::SharedPtr publisher_serial_state_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
+    rclcpp::Service<mxr_msgs::srv::ControlParameter>::SharedPtr srv_control_param_request_;
     size_t count_;
     size_t count_callback_joy_;
 
 
     car::com::pc::SerialInterface serial_arduino;
     car::com::objects::AckermannState ackermann_command;
-    car::com::objects::ControlParameter control_parameter_;
+    car::com::objects::ControlParameter control_parameter_current_;
+    car::com::objects::ControlParameter control_parameter_target_;
     car::com::objects::AckermannConfig ackermann_config_;
     JoyControlParameter joy_control_parameter_;
     mxr_msgs::msg::SerialState serial_state_;

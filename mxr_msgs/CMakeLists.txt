@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BLDCParameter.msg"
   "msg/PIDParameter.msg"
   "msg/ControlParameter.msg"
+  "srv/ControlParameter.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
 )
   
