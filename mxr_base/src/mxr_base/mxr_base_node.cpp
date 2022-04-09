@@ -49,7 +49,7 @@ void MXRBaseNode::init_parameter() {
         this->declare_parameter<double>(name + "/PID/kd", control_parameter_.pid[i].Kd);
         this->declare_parameter<int>(name +    "/BLDC/angle_offset_forward", control_parameter_.bldc[i].angle_offset[BLDCParameter::FORWARD]);
         this->declare_parameter<int>(name +    "/BLDC/angle_offset_backward", control_parameter_.bldc[i].angle_offset[BLDCParameter::BACKWARD]);
-        this->declare_parameter<int>(name +    "/LEFT/BLDC/nr_of_coils", control_parameter_.bldc[i].nr_of_coils);
+        this->declare_parameter<int>(name +    "/LEFT/BLDC/nr_of_coils", control_parameter_.bldc[i].nr_omf_coils);
     }
     
     
